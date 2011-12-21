@@ -3,9 +3,10 @@
 \usepackage{naaclhlt2012}
 \usepackage{times}
 \usepackage{latexsym}
+\usepackage{haldefs}
 \setlength\titlebox{6.5cm}    % Expanding the titlebox
 
-\title{Speaker Identification of TV Series}%\Thanks{}}
+\title{Speaker Identification from Transcripts of TV Series}%\Thanks{}}
 
 \author{He He\\
 	University of Maryland College Park\\
@@ -25,60 +26,165 @@ TODO
 \end{abstract}
 
 \section{Introduction}
+Given the transcript of a conversation in some context, 
+humans are often able to identify speakers whom they are familiar with 
+based on the syntactical style, the word usage, the topical characteristics of the utterance 
+as well as the contextual information.
+In this project, our goal is to build a similar system that accepts a set of possible speakers and 
+a transcript of segmented conversations as input and outputs the speaker for each utterance.
+This can also be used for labeling meeting notes and leverage audio-based speaker identification system.
 
-Introduction ...
-TODO
+We explored the potential of using only part-of-speech (POS) and word usage features
+for this task, with the hope to model individual's speaking style in a certain conversation.
+In addition, considering that a person may change his/her style depending on whom he/she is talking to,
+we designed features that including the contextual information so as to maximally model the real situation.
 
+The paper is organized as follows: in Section 2, we present related work; in Section 3, we describe
+the dataset we used; in Section 3, we show the features we selected and the classification
+methods used in the learning part; in Section 4, we report our results and give some intuitive interpretation.
 
 \section{Related Work}
+The problem of speaker identification (diarization) has been extensively studied in the field of speech processing using audio features. However, to the best of our knowledge 
+there are only a limited research on speaker identification using only texutal data. 
+\cite{Chaudhuri:11} used the Author-Recipient Topic Model \cite{McCallum:07} to first identify
+a subset of speakers who are participating the conversation and then applied an exponential state
+Hidden Markon Model to model the speaking sequence. \cite{Gillick:10} attempted to use only word-level
+information (bag of bigrams) with feature selection to predict speaker demographics from phone
+conversation transcripts. Recently, there is also growing interest in authorship identification in
+short text such as SMS \cite{Mohan:11} and tweets \cite{Sousa-Silva:11}. These approaches extract
+sylistic features based on N-grams to recognize author of the short text.
 
-...TODO
-
+In this project, besides experimenting with different set of idiosyncratic features,
+we try to take the contextual information in modelling the sequence in a conversation.
+More specifically, we include the speakers' possible addressees in the feature space. 
+  
 \section{Data}
-The data we used
-\section{Feature}
-...TODO
+The data we used 
+
 \section{Method}
-...TODO
+\subsection{Feature}
+Previous work has shown that the frequency distribution of part-of-speech (POS) tags may indicate text genre 
+and can be helpful in text classification \cite{Ott:11}. In our case, it is also reasonble to use POS tags
+counts in a person's utterance. For example, some people tend to use many adjectives to describe one thing
+and geeky people may use more technical words that results in higher frequency of NN/NNP unigram and bigram tags.
+Therefore, we choose unigram and bigram POS tags as one set of features to experiment with.
+
+In a topic modelling perspective, it is awared that although people use the same set of common words in daily conversations,
+each individual may have a subset of idosyncratic volcabulary. In our dataset, for instance, Howard talks a lot
+about women and loves to brag about his Master degree from MIT, thus the word ``women'' and ``MIT'' can be a 
+strong indicator of the label ``Howard''. We include both unigrams and bigrams in the word feature, but only 
+maintain those that occurs more than 5 times in the training set. We also keep a small amount of stopwords such
+as ``well'', ``uh'', ``hmm'' and so on, since they can reflect the speaker's speaking style to some extent. 
+For example, when people are uncertain or conservative about the topic, they are likely to use these words 
+so as to have more time for thinking. 
+
+Apart from POS-based and word-based features, we include punctuations, sentence length and average word length
+as well. However, based on our limited experiment, they degraded the system's performance.
+
+Intuitively, it is known that people may change their speaking styple slightly when talking to different people and reponding to different topics. 
+{\bf Ran, could you give some examples in BBT? thanks! }. To include such contextual information, we concatenate
+the feature of an utterance with those of its previous and subsequent turns.
+
+\subsection{Model}
+\subsubsection{Multiclass Classification}
+The speaker identification can be framed in a multiclass classification setting, where we have 6 classes:
+\{Sheldon, Leonard, Howard, Penny, Raj, Other\}. However, it is notices that in our case, the class distribution
+is imbalance, with a large amount of data for ``Sheldon'' and ``Leonard'', while very limited data for ``Raj''. 
+We used different combinations of the feature sets described above to train a {\emph Maximum Entropy} classifier.
+
+In MaxEnt model, we estimate the conditional distribution of the class label $y$ given the observation $\vec x$
+using a log linear model.
+\begin{equation}
+p(y|\vec x)=\frac{1}{Z}\exp\sum_i w_i f_i
+\end{equation}
+Here, $Z$ is a normalization factor that enforces the exponential to be a true probability; 
+$f_i$ denotes the features and $w_i$ is the weight for the corresponding feature.
+Normally, at test time, we always predict whichever class that has the highest probability. 
+However, our problem is indeed a structured prediction problem while at training time, each example is treated
+independently. To enforce the requirement that speakers speaks in turn, which means there is no consecutive
+examples that have the same label, we predict the class that has the highest probability {\emph and} is 
+different from the previous class in a conversation.
+
+\subsubsection{Structured Prediction}
+In multiclass classification, we tried a tuple of concatenated features of three consecutive utterance 
+to incorporating the information about the current speaker's addressees. Although the model does not
+have any structural knowledge, we encode it in the feature space in a naive manner. 
+Another option is to just include the class label of the utterance's ``neighbors'' and train the classifier
+using stacking as in collective classification. Howevev, we believe that only the class label is not 
+sufficient to provide the contextual information. Imagining in daily life, even if we are talking to 
+the same person, we could change our speaking style according to the other's response/register and 
+the current topic.
+
+To further model the sequence of speaker turns in a conversation, we use a linear-chained Conditional Random Field (CRF).
+Since it can incorporate much richer features than a Hidden Markov Model (HMM) by directly modelling 
+the conditional distribution insteand of the joint distribution to avoid the independence assumption of
+different features. Formally, we have
+\begin{equation}
+p(y|\vec x) = \frac{1}{Z}\exp\left\{ \sum_i \lambda_k f_k(\vec x_{t-1}, \vec x_t)\right\}
+\end{equation}
+Here $f_k(\vec x_{t-1}, \vec x_t)$ is the feature for both the current and the previous utterances.
 
 \section{Experiment}
-	
-...TODO
-\subsection {Tool}
-\subsection {Experiment}
-\subsection {Result}
+We used data from {\emph The Big Bang Theory} as described in Section 2. Data in the first season is used as testing 
+set and data in the second season is used as training set. For the MaxEnt model, we used the MEGA Model Optimization Package \cite{Daume:04}. 
+\subsection{Result}
+
+\section{Conclusion and Future Work}
+In this paper, we present both syntactical and topical features to predict 
+the speaker from the transcripts of his/her utterance.
+Our experments show that textual information only can indicate speakers'
+speaking style to some extent.
+We also showed that 
+using structured prediction to incorporate contextual information 
+improves the result. 
+
+In the future, we are very interested to use CRF to model the conversation 
+sequence and use some feature selection criteria to reduce the feature 
+space dimension.
 
 \begin{thebibliography}{}
+\bibitem[\protect\citename{{Daum\'{e}}}2011]{Daume:04}
+Hal Daum\'{e}
+\newblock 2004.
+\newblock {\em Notes on CG and LM-BFGS Optimization of Logistic Regression}.
 
-\bibitem[\protect\citename{Aho and Ullman}1972]{Aho:72}
-Alfred~V. Aho and Jeffrey~D. Ullman.
-\newblock 1972.
-\newblock {\em The Theory of Parsing, Translation and Compiling}, volume~1.
-\newblock Prentice-{Hall}, Englewood Cliffs, NJ.
+\bibitem[\protect\citename{{Ott \bgroup et al.\egroup}}2011]{Ott:11}
+Myle Ott, Yejin Choi, Claire Cardie and Jeffrey T. Hancock
+\newblock 2011.
+\newblock {\em Finding Deceptive Opinion Spam by Any Stretch of the Imagination}. 
+\newblock In {\emph Proceedings of ACL}. 
 
-\bibitem[\protect\citename{{American Psychological Association}}1983]{APA:83}
-{American Psychological Association}.
-\newblock 1983.
-\newblock {\em Publications Manual}.
-\newblock American Psychological Association, Washington, DC.
+\bibitem[\protect\citename{{Mohan \bgroup et al.\egroup}}2011]{Mohan:11}
+Ashwin Mohan, Ibrahim M. Baggili and Marcus K. Rogers
+\newblock 2011.
+\newblock {\em Authorship attribution of SMS messages using an N-grams approach}. 
+\newblock {\emph CERIAS Tech Reports} 2010-11. 
 
-\bibitem[\protect\citename{{Association for Computing Machinery}}1983]{ACM:83}
-{Association for Computing Machinery}.
-\newblock 1983.
-\newblock {\em Computing Reviews}, 24(11):503--512.
+\bibitem[\protect\citename{{Sousa-Silva \bgroup et al.\egroup}}2011]{Sousa-Silva:11}
+Rui Sousa-Silva, Gustavo Laboreiro, Lu\'{i}s Sarmento, Tim Grant, Eug\'{e}nio C. Oliveira and Belinda Maia.
+\newblock 2011.
+\newblock {\em 'twazn me!!! ;)' Automatic Authorship Analysis of Micro-Blogging Messages}. 
+\newblock In {\emph Proceedings of NLDB}. 
 
-\bibitem[\protect\citename{Chandra \bgroup et al.\egroup }1981]{Chandra:81}
-Ashok~K. Chandra, Dexter~C. Kozen, and Larry~J. Stockmeyer.
-\newblock 1981.
-\newblock Alternation.
-\newblock {\em Journal of the Association for Computing Machinery},
-  28(1):114--133.
+\bibitem[\protect\citename{{Gillick}}2007]{Gillick:10}
+Dan Gillick.
+\newblock 2010.
+\newblock {\em Can Conversational Word Usage Be Used to Predict Speaker Demographics?}.
+\newblock In {\emph Proceedings of Interspeech}. 
 
-\bibitem[\protect\citename{Gusfield}1997]{Gusfield:97}
-Dan Gusfield.
-\newblock 1997.
-\newblock {\em Algorithms on Strings, Trees and Sequences}.
-\newblock Cambridge University Press, Cambridge, UK.
+\bibitem[\protect\citename{{McCallum \bgroup et al.\egroup}}2007]{McCallum:07}
+Andrew McCallum, Xuerui Wang and Andres Corrada-Emmanuel.
+\newblock 2007.
+\newblock {\em Topic and Role Discovery in Social Networks with Experiments on Enron and Academic
+Email.}. 
+\newblock In {\emph Journal of Artificial Intelligience Research}.
+
+\bibitem[\protect\citename{{Chaudhuri and Raj}}2011]{Chaudhuri:11}
+Sourish Chaudhuri and Bhiksha Raj.
+\newblock 2011.
+\newblock {\em A Comparison of Laten Variable Models for Conversation Analysis}.
+\newblock In {\emph Proceedings of SIGDIAL}.
+
 
 \end{thebibliography}
 
