@@ -1,0 +1,25 @@
+wd.model
+Accuracy: 0.344234496124031
+pos.model
+Accuracy: 0.32000968992248063
+poswd.model
+Accuracy: 0.3481104651162791
+wdcl.model
+Accuracy: 0.33430232558139533
+unipos.model
+Accuracy: 0.311046511627907
+uniposwdcl.model
+Accuracy: 0.3066860465116279
+uniposwd.model
+Accuracy: 0.28900193798449614
+poswdcl.model
+Accuracy: 0.3444767441860465
+poswdcllen.model
+Accuracy: 0.3333333333333333
+poswdlen.model
+Accuracy: 0.33454457364341084
+tuple.model
+Accuracy: 0.34689922480620156
+char.model
+Accuracy: 0.3346153846153846
+

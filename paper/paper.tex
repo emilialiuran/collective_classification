@@ -22,7 +22,7 @@
 \maketitle
 \begin{abstract}
 In this paper, we experiment with speaker identification with textual information. We not only take into account the features of the speech of certain character, but also included contextual information by analyzing  the other participants in the same conversation. 
-TODO
+
 \end{abstract}
 
 \section{Introduction}
@@ -59,8 +59,21 @@ we try to take the contextual information in modelling the sequence in a convers
 More specifically, we include the speakers' possible addressees in the feature space. 
   
 \section{Data}
-The data we used 
+The data we used in the this paper is the scripts for the TV series The Big Bang Theory. For each line in the data file are formatted as speaker name, followed by the line for that character. The conversations are clustered and separated by the scene. In the original data set, each scene has a description of the location, and some of the action descriptions for the actors. We removed these descriptions for the convenience of the experiment. But we keep the scene information to group the speeches by conversation.
 
+We used the first two season of {\emph The Big Bang Theory} in our experiment. There are total 4137 iterations in season 1, and 5253 in season 2. We processed the original transcripts to only keep the name of the five main characters: Leonard, Sheldon, Howard, Raj and Penny. To keep the conversation information, we keep the speech of other characters but replaced the name as OTHER. In the experiment, we use the Big Bang Theory season 2 as our training set and season 1 as our testing data. 
+
+ A sample data is shown below:
+
+{\emph  Scene: A corridor at a sperm bank.
+
+
+Sheldon: So if a photon is directed through a plane with two slits in it and either slit is observed it will not go through both slits. If it’s unobserved it will, however, if it’s observed after it’s left the plane but before it hits its target, it will not have gone through both slits.
+
+Leonard: Agreed, what’s your point?
+
+Sheldon: There’s no point, I just think it’s a good idea for a tee-shirt.
+}
 \section{Method}
 \subsection{Feature}
 Previous work has shown that the frequency distribution of part-of-speech (POS) tags may indicate text genre 
@@ -69,7 +82,7 @@ counts in a person's utterance. For example, some people tend to use many adject
 and geeky people may use more technical words that results in higher frequency of NN/NNP unigram and bigram tags.
 Therefore, we choose unigram and bigram POS tags as one set of features to experiment with.
 
-In a topic modelling perspective, it is awared that although people use the same set of common words in daily conversations,
+In a topic modeling perspective, it is awared that although people use the same set of common words in daily conversations,
 each individual may have a subset of idosyncratic volcabulary. In our dataset, for instance, Howard talks a lot
 about women and loves to brag about his Master degree from MIT, thus the word ``women'' and ``MIT'' can be a 
 strong indicator of the label ``Howard''. We include both unigrams and bigrams in the word feature, but only 
@@ -82,7 +95,7 @@ Apart from POS-based and word-based features, we include punctuations, sentence 
 as well. However, based on our limited experiment, they degraded the system's performance.
 
 Intuitively, it is known that people may change their speaking styple slightly when talking to different people and reponding to different topics. 
-{\bf Ran, could you give some examples in BBT? thanks! }. To include such contextual information, we concatenate
+For example, Sheldon will always argue with his friends, but he will seldom argue or discuss with his mom. To include such contextual information, we concatenate
 the feature of an utterance with those of its previous and subsequent turns.
 
 \subsection{Model}
@@ -128,7 +141,43 @@ Here $f_k(\vec x_{t-1}, \vec x_t)$ is the feature for both the current and the p
 We used data from {\emph The Big Bang Theory} as described in Section 2. Data in the first season is used as testing 
 set and data in the second season is used as training set. For the MaxEnt model, we used the MEGA Model Optimization Package \cite{Daume:04}. 
 \subsection{Result}
+The results are shown in Table 1. In this paper we explore two types of features: words and the Part Of Speech (POS) tag of the words. We ran the experiment on the data set. For each type of feature, we are using both of the unigram and bigram as the features. For the words feature, the result accuracy is 0.3442, slightly better than POS tag, which is 0.3200. To improve the result, we tried to use more sophisticated features. We removed the stop words from the conversations, hoping by remove the non-meaningful words from the feature, the result would improvement. But the result accuracy turned out opposed to what we hoped. We then tried to map the POS tags to the universal tags, but the result accuracy reduced again. 
 
+We then performed experiments using the combination of the features. The results are illustrated in Table 2.  The most promising combination is word and POS tag, also include both unigram and bigram. The combination of words without stop words and POS tags also shown improvement than single feature. Almost all the combinations provide better results than single feature, except the combination of universal tag and word. Given the fact that universal tag does not perform well itself, the result is kind of expected.
+
+We observe the combinations are slightly better than single characters feature. It might due to the features are not enough. The next step is to explore more features using features engineering techniques. But due to the time limitations, we did not address this issue. 
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|rl|}
+\hline \bf Type of Features & \bf Accuracy  &\\ \hline
+ word & 0.3442& \\
+ word without stop words & 0.3343 &\\
+  POS & 0.3200& \\
+  universal POS & 0.3110&\\
+  characters & 0.3346&\\
+\hline
+\end{tabular}
+\end{center}
+\caption{\label{result-table1} Result of single type of features (each of experiment include the unigram and bigram of the corresponding feature type. }
+\end{table}
+
+\begin{table*}
+\begin{center}
+\begin{tabular}{|l|rl|}
+\hline \bf Type of Features & \bf Accuracy  &\\ \hline
+POS + word  & 0.3469& \\
+UPOS + word & 0.2890&\\
+POS + word(no stop words) & 0.3445&\\
+POS + word(no stop words)  + word length & 0.3333&\\
+POS + word + word length &0.3345&\\
+
+
+\hline
+\end{tabular}
+\end{center}
+\caption{\label{result-table2} Result of combination of features (each of experiment include the unigram and bigram of the corresponding feature type. }
+\end{table*}
 \section{Conclusion and Future Work}
 In this paper, we present both syntactical and topical features to predict 
 the speaker from the transcripts of his/her utterance.
